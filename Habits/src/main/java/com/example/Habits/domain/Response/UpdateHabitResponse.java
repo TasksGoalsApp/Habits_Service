@@ -1,10 +1,7 @@
-package com.example.Habits.domain.Request;
+package com.example.Habits.domain.Response;
 
 import com.example.Habits.domain.HabitCategory;
 import com.example.Habits.domain.HabitFrequency;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,15 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Data
-public class CreateHabitRequest {
+public class UpdateHabitResponse {
 
-    @NotBlank
-    @Size(max=100)
     private String name;
-    @NotNull
     private HabitFrequency habitFrequency;
-    @NotNull
     private HabitCategory habitCategory;
-
-
 }
