@@ -1,0 +1,4 @@
+package com.example.Habits.domain.Request;
+
+public class GetAllHabitsRequest {
+}
