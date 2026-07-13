@@ -3,10 +3,10 @@ package com.example.Habits.business;
 import com.example.Habits.domain.Habit;
 import com.example.Habits.repository.HabitEntity;
 
-public class HabitConvertor {
-    private HabitConvertor(){}
+public class HabitConverter {
+    private HabitConverter(){}
 
-    private static Habit convert(HabitEntity entity){
+    public static Habit convert(HabitEntity entity){
         return Habit.builder()
                 .id(entity.getId())
                 .userId(entity.getUserId())
@@ -16,6 +16,7 @@ public class HabitConvertor {
                 .currentStreak(entity.getCurrentStreak())
                 .bestStreak(entity.getBestStreak())
                 .createdAt(entity.getCreatedAt())
+                .active(entity.isActive())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
     }

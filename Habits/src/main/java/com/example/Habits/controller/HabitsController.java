@@ -7,12 +7,14 @@ import com.example.Habits.business.IUpdateHabit;
 import com.example.Habits.domain.Request.CreateHabitRequest;
 import com.example.Habits.domain.Request.UpdateHabitRequest;
 import com.example.Habits.domain.Response.CreateHabitResponse;
+import com.example.Habits.domain.Response.GetAllHabitsByUserResponse;
 import com.example.Habits.domain.Response.UpdateHabitResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*")
@@ -20,31 +22,40 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/habits")
 public class HabitsController {
-    @Autowired
-    private ICreateHabit createHabit;
 
-    private IDeleteHabit deleteHabit;
-    private IGetAllHabitsByUser getAllHabitsByUser;
-    private IUpdateHabit updateHabit;
+    private final ICreateHabit createHabit;
 
-    @PostMapping("/create")
-    public ResponseEntity<CreateHabitResponse> createHabit(@RequestBody @Valid CreateHabitRequest createHabitRequest){
+    private final IDeleteHabit deleteHabit;
+    private final IGetAllHabitsByUser getAllHabitsByUser;
+    private final IUpdateHabit updateHabit;
 
-        CreateHabitResponse response = createHabit.createHabit(createHabitRequest);
+    @PostMapping()
+    public ResponseEntity<CreateHabitResponse> createHabit(@RequestBody @Valid CreateHabitRequest createHabitRequest, @AuthenticationPrincipal Jwt jwt){
+        Long userId = jwt.getClaim("id");
+        CreateHabitResponse response = createHabit.createHabit(createHabitRequest, userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
 
-    @PutMapping
-    public ResponseEntity<UpdateHabitResponse> updateHabit(@RequestBody @Valid UpdateHabitRequest updateHabitRequest){
-        UpdateHabitResponse response = updateHabit.updateHabit(updateHabitRequest);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    @PutMapping("{habitId}")
+    public ResponseEntity<UpdateHabitResponse> updateHabit(@RequestBody @Valid UpdateHabitRequest updateHabitRequest, @PathVariable Long habitId, @AuthenticationPrincipal Jwt jwt ){
+       Long userId = jwt.getClaim("id");
+       UpdateHabitResponse response = updateHabit.updateHabit(updateHabitRequest, habitId, userId);
+       return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @DeleteMapping
-    public ResponseEntity<Void> deleteHabit(){
-        //To Do Finish it
+    @DeleteMapping("{habitId}")
+    public ResponseEntity<Void> deleteHabit(@PathVariable Long habitId, @AuthenticationPrincipal Jwt jwt){
+        Long userId = jwt.getClaim("id");
+        deleteHabit.deleteHabit(habitId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<GetAllHabitsByUserResponse> getAllHabitsByUser(@AuthenticationPrincipal Jwt jwt){
+        Long userId = jwt.getClaim("id");
+        GetAllHabitsByUserResponse response = getAllHabitsByUser.getAllHabits(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
 

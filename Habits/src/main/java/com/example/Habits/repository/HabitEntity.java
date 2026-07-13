@@ -42,22 +42,22 @@ public class HabitEntity {
     @Column(name = "category", nullable = false, length = 30)
     private HabitCategory habitCategory;
 
-    @Column(name = "", nullable = false)
+    @Column(name = "current_streak", nullable = false)
     @Builder.Default
     private int currentStreak=0;
 
-    @Column(name = "", nullable = false)
+    @Column(name = "best_streak", nullable = false)
     @Builder.Default
     private int bestStreak=0;
 
-    @Column(name = "", nullable = false)
+    @Column(name = "active", nullable = false)
     @Builder.Default
     private boolean active= true;
 
-    @Column(name = "", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "", nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
 

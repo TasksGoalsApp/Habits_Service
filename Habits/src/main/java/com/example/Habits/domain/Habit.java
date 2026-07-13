@@ -45,7 +45,7 @@ public class Habit {
             this.bestStreak = this.currentStreak;
         }
     }
-    public void resetCurrentStreak() {
+    public void resetStreak() {
         this.currentStreak = 0;
     }
 
@@ -90,7 +90,7 @@ public class Habit {
             );
         }
     }
-    private void updateStreak(int newCurrentStreak, int newBestStreak) {
+    public void updateStreak(int newCurrentStreak, int newBestStreak) {
         validateStreak(newCurrentStreak, newBestStreak);
 
         this.currentStreak = newCurrentStreak;
