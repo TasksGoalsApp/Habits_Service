@@ -2,7 +2,6 @@ package com.example.Habits.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,16 +13,16 @@ public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
-        LOGGER.error("The item was not found.", ex);
-        ErrorResponse error = new ErrorResponse(
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND.value()
-        );
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
+//    @ExceptionHandler(ResourceNotFoundException.class)
+//    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
+//        LOGGER.error("The item was not found.", ex);
+//        ErrorResponse error = new ErrorResponse(
+//                ex.getMessage(),
+//                HttpStatus.NOT_FOUND.value()
+//        );
+//
+//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+//    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
@@ -64,5 +63,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(error);
     }
+
+    @ExceptionHandler(HabitNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleHabitNotFound(
+            HabitNotFoundException ex
+    ) {
+        LOGGER.warn("Habit was not found: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND.value()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
 
 }

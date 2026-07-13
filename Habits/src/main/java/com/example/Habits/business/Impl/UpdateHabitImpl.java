@@ -22,7 +22,7 @@ public class UpdateHabitImpl implements IUpdateHabit {
         HabitEntity habitEntity = habitsRepository.findByIdAndUserId(habit_id, user_id)
                 .orElseThrow(()-> new HabitNotFoundException(habit_id));
 
-        habitEntity.setName(request.getName());
+        habitEntity.setName(request.getName().trim());
         habitEntity.setHabitCategory(request.getHabitCategory());
         habitEntity.setHabitFrequency(request.getHabitFrequency());
 

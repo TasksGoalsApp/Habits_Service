@@ -1,6 +1,6 @@
 package com.example.Habits.business.Impl;
 
-import com.example.Habits.business.IDeleteHabit;
+import com.example.Habits.business.IActivateHabit;
 import com.example.Habits.exception.HabitNotFoundException;
 import com.example.Habits.repository.HabitEntity;
 import com.example.Habits.repository.HabitsRepository;
@@ -8,19 +8,17 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-
-@AllArgsConstructor
 @Service
-public class DeleteHabitImpl implements IDeleteHabit {
+@AllArgsConstructor
+public class ActivateHabitImpl implements IActivateHabit {
     private final HabitsRepository habitsRepository;
 
     @Transactional
     @Override
-    public void deleteHabit(Long id, Long userId) {
-        HabitEntity habitEntity = habitsRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new HabitNotFoundException(id));
+    public void activateHabit(Long habitId, Long userId) {
+        HabitEntity entity = habitsRepository.findByIdAndUserId(habitId, userId)
+                .orElseThrow(()-> new HabitNotFoundException(habitId));
 
-        this.habitsRepository.delete(habitEntity);
+        entity.setActive(true);
     }
-
 }
