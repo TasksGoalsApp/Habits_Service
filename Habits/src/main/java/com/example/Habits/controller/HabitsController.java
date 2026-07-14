@@ -37,7 +37,7 @@ public class HabitsController {
     private final IGetAllHabitsByUser getAllHabitsByUser;
     private final IUpdateHabit updateHabit;
 
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<CreateHabitResponse> createHabit(@RequestBody @Valid CreateHabitRequest createHabitRequest, @AuthenticationPrincipal Jwt jwt){
         Long userId = jwtUserIdExtractor.extract(jwt);
         CreateHabitResponse response = createHabit.createHabit(createHabitRequest, userId);
@@ -49,7 +49,7 @@ public class HabitsController {
     public ResponseEntity<UpdateHabitResponse> updateHabit(@RequestBody @Valid UpdateHabitRequest updateHabitRequest, @PathVariable Long habitId, @AuthenticationPrincipal Jwt jwt ){
        Long userId = jwtUserIdExtractor.extract(jwt);
        UpdateHabitResponse response = updateHabit.updateHabit(updateHabitRequest, habitId, userId);
-       return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{habitId}")

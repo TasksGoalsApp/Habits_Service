@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Entity
 @Table(name = "habit_completion")
 @Getter
 @Setter
