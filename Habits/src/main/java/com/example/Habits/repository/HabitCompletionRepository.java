@@ -20,4 +20,12 @@ public interface HabitCompletionRepository extends JpaRepository<HabitCompletion
 
     void deleteAllByHabitIdIn(List<Long> habitIds);
 
+    Optional<HabitCompletionEntity> findByHabitIdAndCompletionDate(Long habitId, LocalDate today);
+
+    Optional<HabitCompletionEntity> findFirstByHabitIdAndCompletionDateBetween(Long habitId, LocalDate weekStart, LocalDate weekEnd);
+
+    List<HabitCompletionEntity> findAllByHabitIdOrderByCompletionDateAsc(Long habitId);
+
+
+
 }

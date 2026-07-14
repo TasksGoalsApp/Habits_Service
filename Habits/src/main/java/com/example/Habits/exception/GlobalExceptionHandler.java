@@ -80,5 +80,26 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(HabitAlreadyCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyCompleted(HabitAlreadyCompletedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage(), HttpStatus.CONFLICT.value()));
+    }
+
+    @ExceptionHandler(InactiveHabitException.class)
+    public ResponseEntity<ErrorResponse> handleInactiveHabit(InactiveHabitException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage(), HttpStatus.CONFLICT.value()));
+    }
+
+    @ExceptionHandler(HabitNotCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleHabitNotCompleted(HabitNotCompletedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(
+                        ex.getMessage(),
+                        HttpStatus.CONFLICT.value()
+                ));
+    }
 
 }
