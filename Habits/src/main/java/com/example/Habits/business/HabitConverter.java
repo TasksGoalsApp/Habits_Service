@@ -4,8 +4,8 @@ import com.example.Habits.domain.Habit;
 import com.example.Habits.repository.HabitEntity;
 import org.springframework.stereotype.Component;
 
-@Component
-public class HabitConverter {
+
+public final class HabitConverter {
     private HabitConverter(){}
 
     public static Habit toDomain(HabitEntity entity){
@@ -23,7 +23,7 @@ public class HabitConverter {
                 .build();
     }
 
-    public void applyToEntity(Habit habit, HabitEntity entity) {
+    public static void applyToEntity(Habit habit, HabitEntity entity) {
         entity.setName(habit.getName());
         entity.setHabitFrequency(habit.getHabitFrequency());
         entity.setHabitCategory(habit.getHabitCategory());

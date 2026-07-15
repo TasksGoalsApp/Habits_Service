@@ -28,7 +28,6 @@ public class CompleteHabitImpl implements ICompleteHabit {
 
     private final HabitsRepository habitsRepository;
     private final HabitCompletionRepository habitCompletionRepository;
-    private final HabitConverter habitConverter;
 
     @Transactional
     @Override
@@ -54,7 +53,7 @@ public class CompleteHabitImpl implements ICompleteHabit {
             habit.startNewStreak();
         }
 
-        habitConverter.applyToEntity(habit, habitEntity);
+        HabitConverter.applyToEntity(habit, habitEntity);
 
         HabitCompletionEntity completion = habitCompletionRepository.save(
                         HabitCompletionEntity.builder()

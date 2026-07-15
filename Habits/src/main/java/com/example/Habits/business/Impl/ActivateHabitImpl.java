@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class ActivateHabitImpl implements IActivateHabit {
     private final HabitsRepository habitsRepository;
-    private final HabitConverter habitConverter;
 
     @Transactional
     @Override
@@ -24,6 +23,6 @@ public class ActivateHabitImpl implements IActivateHabit {
 
         Habit habit = HabitConverter.toDomain(entity);
         habit.activate();
-        habitConverter.applyToEntity(habit, entity);
+        HabitConverter.applyToEntity(habit, entity);
     }
 }

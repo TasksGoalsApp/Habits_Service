@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "habit_completion")
+@Table(name = "habit_completions", uniqueConstraints = @UniqueConstraint(columnNames = {"habit_id", "completion_date"}))
 @Getter
 @Setter
 @Builder

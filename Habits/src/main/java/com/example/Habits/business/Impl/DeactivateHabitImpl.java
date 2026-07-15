@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 public class DeactivateHabitImpl implements IDeactivateHabit {
 
     private final HabitsRepository habitsRepository;
-    private final HabitConverter habitConverter;
 
 
     @Override
@@ -26,7 +25,7 @@ public class DeactivateHabitImpl implements IDeactivateHabit {
 
         Habit habit = HabitConverter.toDomain(entity);
         habit.deactivate();
-        habitConverter.applyToEntity(habit, entity);
+        HabitConverter.applyToEntity(habit, entity);
 
     }
 }

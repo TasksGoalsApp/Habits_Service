@@ -2,6 +2,8 @@ package com.example.Habits.business.Impl.HabitCompletion;
 
 import com.example.Habits.business.HabitCompletion.IUncompleteHabit;
 import com.example.Habits.business.HabitConverter;
+import com.example.Habits.business.streak.StreakCalculator;
+import com.example.Habits.business.streak.StreakResult;
 import com.example.Habits.domain.Habit;
 import com.example.Habits.domain.HabitFrequency;
 import com.example.Habits.exception.HabitNotCompletedException;
@@ -26,8 +28,7 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
 
     private final HabitsRepository habitsRepository;
     private final HabitCompletionRepository habitCompletionRepository;
-    private final HabitConverter habitConverter;
-    private record StreakResult(int currentStreak, int bestStreak) {}
+    private final StreakCalculator streakCalculator;
 
     @Transactional
     @Override
@@ -62,97 +63,18 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
     private void recalculateStreaks(HabitEntity habitEntity) {
         List<HabitCompletionEntity> completions = habitCompletionRepository.findAllByHabitIdOrderByCompletionDateAsc(habitEntity.getId());
 
-        Habit habit = habitConverter.toDomain(habitEntity);
+        Habit habit = HabitConverter.toDomain(habitEntity);
 
-        if (completions.isEmpty()) {
-            habit.applyRecalculatedStreaks(0, 0);
-            habitConverter.applyToEntity(habit, habitEntity);
-            return;
-        }
-
-        StreakResult streakResult;
-
-        if (habit.getHabitFrequency() == HabitFrequency.DAILY) {
-            streakResult = calculateDailyStreaks(completions);
-        } else {
-            streakResult = calculateWeeklyStreaks(completions);
-        }
-
-        habit.applyRecalculatedStreaks(
-                streakResult.currentStreak(),
-                streakResult.bestStreak()
-        );
-
-        habitConverter.applyToEntity(habit, habitEntity);
-    }
-
-    private StreakResult calculateDailyStreaks(List<HabitCompletionEntity> completions) {
-        int runningStreak = 1;
-        int bestStreak = 1;
-
-        for (int i = 1; i < completions.size(); i++) {
-            LocalDate previousDate = completions.get(i - 1).getCompletionDate();
-
-            LocalDate currentDate = completions.get(i).getCompletionDate();
-
-            if (currentDate.equals(previousDate.plusDays(1))) {
-                runningStreak++;
-            } else {
-                runningStreak = 1;
-            }
-
-            bestStreak = Math.max(bestStreak, runningStreak);
-        }
-
-        LocalDate lastCompletionDate = completions.get(completions.size() - 1).getCompletionDate();
-
-        LocalDate today = LocalDate.now();
-
-        boolean currentStreakIsActive = lastCompletionDate.equals(today) || lastCompletionDate.equals(today.minusDays(1));
-
-        int currentStreak = currentStreakIsActive ? runningStreak : 0;
-
-        return new StreakResult(currentStreak, bestStreak);
-    }
-
-    private StreakResult calculateWeeklyStreaks(List<HabitCompletionEntity> completions) {
-        List<LocalDate> completionWeeks = completions.stream()
+        List<LocalDate> completionDates = completions.stream()
                 .map(HabitCompletionEntity::getCompletionDate)
-                .map(this::getWeekStart)
-                .distinct()
-                .sorted()
                 .toList();
 
-        int runningStreak = 1;
-        int bestStreak = 1;
+        StreakResult result = streakCalculator.calculate(habit.getHabitFrequency(), completionDates,LocalDate.now());
 
-        for (int i = 1; i < completionWeeks.size(); i++) {
-            LocalDate previousWeek = completionWeeks.get(i - 1);
+        habit.applyRecalculatedStreaks(result.currentStreak(), result.bestStreak());
 
-            LocalDate currentWeek = completionWeeks.get(i);
-
-            if (currentWeek.equals(previousWeek.plusWeeks(1))) {
-                runningStreak++;
-            } else {
-                runningStreak = 1;
-            }
-
-            bestStreak = Math.max(bestStreak, runningStreak);
-        }
-
-        LocalDate currentWeekStart = getWeekStart(LocalDate.now());
-
-        LocalDate lastCompletionWeek = completionWeeks.get(completionWeeks.size() - 1);
-
-        boolean currentStreakIsActive = lastCompletionWeek.equals(currentWeekStart) || lastCompletionWeek.equals(currentWeekStart.minusWeeks(1));
-
-        int currentStreak = currentStreakIsActive ? runningStreak : 0;
-
-        return new StreakResult(currentStreak, bestStreak);
+        HabitConverter.applyToEntity(habit, habitEntity);
     }
 
-    private LocalDate getWeekStart(LocalDate date) {
-        return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-    }
 
 }
