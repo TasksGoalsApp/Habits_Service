@@ -1,6 +1,8 @@
 package com.example.Habits.business.Impl.HabitCompletion;
 
 import com.example.Habits.business.HabitCompletion.IUncompleteHabit;
+import com.example.Habits.business.HabitConverter;
+import com.example.Habits.domain.Habit;
 import com.example.Habits.domain.HabitFrequency;
 import com.example.Habits.exception.HabitNotCompletedException;
 import com.example.Habits.exception.HabitNotFoundException;
@@ -24,19 +26,19 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
 
     private final HabitsRepository habitsRepository;
     private final HabitCompletionRepository habitCompletionRepository;
+    private final HabitConverter habitConverter;
+    private record StreakResult(int currentStreak, int bestStreak) {}
 
     @Transactional
     @Override
     public void uncompleteHabit(Long habitId, Long userId) {
 
-        HabitEntity habit = habitsRepository
-                .findByIdAndUserId(habitId, userId)
+        HabitEntity habit = habitsRepository.findByIdAndUserId(habitId, userId)
                 .orElseThrow(() -> new HabitNotFoundException(habitId));
 
         LocalDate today = LocalDate.now();
 
-        HabitCompletionEntity completion =
-                findCurrentCompletion(habit, today)
+        HabitCompletionEntity completion = findCurrentCompletion(habit, today)
                         .orElseThrow(() -> new HabitNotCompletedException(habitId));
 
         habitCompletionRepository.delete(completion);
@@ -57,35 +59,41 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
         return habitCompletionRepository.findFirstByHabitIdAndCompletionDateBetween(habit.getId(), weekStart, weekEnd);
     }
 
-    private void recalculateStreaks(HabitEntity habit) {
-        List<HabitCompletionEntity> completions = habitCompletionRepository.findAllByHabitIdOrderByCompletionDateAsc(habit.getId());
+    private void recalculateStreaks(HabitEntity habitEntity) {
+        List<HabitCompletionEntity> completions = habitCompletionRepository.findAllByHabitIdOrderByCompletionDateAsc(habitEntity.getId());
+
+        Habit habit = habitConverter.toDomain(habitEntity);
 
         if (completions.isEmpty()) {
-            habit.setCurrentStreak(0);
-            habit.setBestStreak(0);
+            habit.applyRecalculatedStreaks(0, 0);
+            habitConverter.applyToEntity(habit, habitEntity);
             return;
         }
 
+        StreakResult streakResult;
+
         if (habit.getHabitFrequency() == HabitFrequency.DAILY) {
-            recalculateDailyStreaks(habit, completions);
+            streakResult = calculateDailyStreaks(completions);
         } else {
-            recalculateWeeklyStreaks(habit, completions);
+            streakResult = calculateWeeklyStreaks(completions);
         }
+
+        habit.applyRecalculatedStreaks(
+                streakResult.currentStreak(),
+                streakResult.bestStreak()
+        );
+
+        habitConverter.applyToEntity(habit, habitEntity);
     }
 
-    private void recalculateDailyStreaks(
-            HabitEntity habit,
-            List<HabitCompletionEntity> completions
-    ) {
+    private StreakResult calculateDailyStreaks(List<HabitCompletionEntity> completions) {
         int runningStreak = 1;
         int bestStreak = 1;
 
         for (int i = 1; i < completions.size(); i++) {
-            LocalDate previousDate =
-                    completions.get(i - 1).getCompletionDate();
+            LocalDate previousDate = completions.get(i - 1).getCompletionDate();
 
-            LocalDate currentDate =
-                    completions.get(i).getCompletionDate();
+            LocalDate currentDate = completions.get(i).getCompletionDate();
 
             if (currentDate.equals(previousDate.plusDays(1))) {
                 runningStreak++;
@@ -96,26 +104,18 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
             bestStreak = Math.max(bestStreak, runningStreak);
         }
 
-        LocalDate lastCompletionDate =
-                completions.getLast().getCompletionDate();
+        LocalDate lastCompletionDate = completions.get(completions.size() - 1).getCompletionDate();
 
         LocalDate today = LocalDate.now();
 
-        boolean currentStreakStillActive =
-                lastCompletionDate.equals(today) ||
-                        lastCompletionDate.equals(today.minusDays(1));
+        boolean currentStreakIsActive = lastCompletionDate.equals(today) || lastCompletionDate.equals(today.minusDays(1));
 
-        habit.setCurrentStreak(
-                currentStreakStillActive ? runningStreak : 0
-        );
+        int currentStreak = currentStreakIsActive ? runningStreak : 0;
 
-        habit.setBestStreak(bestStreak);
+        return new StreakResult(currentStreak, bestStreak);
     }
 
-    private void recalculateWeeklyStreaks(
-            HabitEntity habit,
-            List<HabitCompletionEntity> completions
-    ) {
+    private StreakResult calculateWeeklyStreaks(List<HabitCompletionEntity> completions) {
         List<LocalDate> completionWeeks = completions.stream()
                 .map(HabitCompletionEntity::getCompletionDate)
                 .map(this::getWeekStart)
@@ -128,6 +128,7 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
 
         for (int i = 1; i < completionWeeks.size(); i++) {
             LocalDate previousWeek = completionWeeks.get(i - 1);
+
             LocalDate currentWeek = completionWeeks.get(i);
 
             if (currentWeek.equals(previousWeek.plusWeeks(1))) {
@@ -141,26 +142,17 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
 
         LocalDate currentWeekStart = getWeekStart(LocalDate.now());
 
-        LocalDate lastCompletionWeek =
-                completionWeeks.get(completionWeeks.size() - 1);
+        LocalDate lastCompletionWeek = completionWeeks.get(completionWeeks.size() - 1);
 
-        boolean currentStreakStillActive =
-                lastCompletionWeek.equals(currentWeekStart) ||
-                        lastCompletionWeek.equals(
-                                currentWeekStart.minusWeeks(1)
-                        );
+        boolean currentStreakIsActive = lastCompletionWeek.equals(currentWeekStart) || lastCompletionWeek.equals(currentWeekStart.minusWeeks(1));
 
-        habit.setCurrentStreak(
-                currentStreakStillActive ? runningStreak : 0
-        );
+        int currentStreak = currentStreakIsActive ? runningStreak : 0;
 
-        habit.setBestStreak(bestStreak);
+        return new StreakResult(currentStreak, bestStreak);
     }
 
     private LocalDate getWeekStart(LocalDate date) {
-        return date.with(
-                TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
-        );
+        return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
 }

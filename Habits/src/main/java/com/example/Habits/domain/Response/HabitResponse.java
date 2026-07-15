@@ -2,7 +2,13 @@ package com.example.Habits.domain.Response;
 
 import com.example.Habits.domain.HabitCategory;
 import com.example.Habits.domain.HabitFrequency;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
+@Getter
+@Builder
+@AllArgsConstructor
 public class HabitResponse {
     private Long id;
     private String name;

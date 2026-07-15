@@ -1,6 +1,8 @@
 package com.example.Habits.business.Impl.HabitCompletion;
 
 import com.example.Habits.business.HabitCompletion.ICompleteHabit;
+import com.example.Habits.business.HabitConverter;
+import com.example.Habits.domain.Habit;
 import com.example.Habits.domain.HabitFrequency;
 import com.example.Habits.domain.Response.HabitCompletion.CompleteHabitResponse;
 import com.example.Habits.exception.HabitAlreadyCompletedException;
@@ -12,6 +14,7 @@ import com.example.Habits.repository.HabitEntity;
 import com.example.Habits.repository.HabitsRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -25,30 +28,35 @@ public class CompleteHabitImpl implements ICompleteHabit {
 
     private final HabitsRepository habitsRepository;
     private final HabitCompletionRepository habitCompletionRepository;
+    private final HabitConverter habitConverter;
 
     @Transactional
     @Override
     public CompleteHabitResponse completeHabit(Long habitId, Long userId) {
-        HabitEntity habit = habitsRepository
-                .findByIdAndUserId(habitId, userId)
+        HabitEntity habitEntity = habitsRepository.findByIdAndUserId(habitId, userId)
                 .orElseThrow(() -> new HabitNotFoundException(habitId));
 
-        if (!habit.isActive()) {
-            throw new InactiveHabitException(habitId);
-        }
+        Habit habit = HabitConverter.toDomain(habitEntity);
+
 
         LocalDate today = LocalDate.now();
 
         validateNotAlreadyCompleted(habit, today);
 
-        Optional<HabitCompletionEntity> previousCompletion =
-                habitCompletionRepository
-                        .findTopByHabitIdOrderByCompletionDateDesc(habitId);
+        Optional<HabitCompletionEntity> previousCompletion = habitCompletionRepository.findTopByHabitIdOrderByCompletionDateDesc(habitId);
 
-        updateStreak(habit, previousCompletion, today);
+//        updateStreak(habit, previousCompletion, today);
+        boolean consecutive = isConsecutive(habit, previousCompletion, today);
 
-        HabitCompletionEntity completion =
-                habitCompletionRepository.save(
+        if (consecutive) {
+            habit.completeConsecutivePeriod();
+        } else {
+            habit.startNewStreak();
+        }
+
+        habitConverter.applyToEntity(habit, habitEntity);
+
+        HabitCompletionEntity completion = habitCompletionRepository.save(
                         HabitCompletionEntity.builder()
                                 .habitId(habitId)
                                 .completionDate(today)
@@ -64,7 +72,7 @@ public class CompleteHabitImpl implements ICompleteHabit {
                 .build();
     }
 
-    private void validateNotAlreadyCompleted(HabitEntity habit, LocalDate completionDate) {
+    private void validateNotAlreadyCompleted(Habit habit, LocalDate completionDate) {
         boolean alreadyCompleted;
 
         if (habit.getHabitFrequency() == HabitFrequency.DAILY) {
@@ -83,28 +91,27 @@ public class CompleteHabitImpl implements ICompleteHabit {
     }
 
 
-    private void updateStreak(HabitEntity habit, Optional<HabitCompletionEntity> previousCompletion, LocalDate currentDate) {
-        if (previousCompletion.isEmpty()) {
-            habit.setCurrentStreak(1);
-            habit.setBestStreak(Math.max(habit.getBestStreak(), 1));
-            return;
-        }
-
-        LocalDate previousDate = previousCompletion.get().getCompletionDate();
-
-        boolean consecutive =
-                habit.getHabitFrequency() == HabitFrequency.DAILY ? previousDate.equals(currentDate.minusDays(1)) : isPreviousIsoWeek(previousDate, currentDate);
-
-        if (consecutive) {
-            habit.setCurrentStreak(habit.getCurrentStreak() + 1);
-        } else {
-            habit.setCurrentStreak(1);
-        }
-
-        if (habit.getCurrentStreak() > habit.getBestStreak()) {
-            habit.setBestStreak(habit.getCurrentStreak());
-        }
-    }
+//    private void updateStreak(Habit habit, Optional<HabitCompletionEntity> previousCompletion, LocalDate currentDate) {
+//        if (previousCompletion.isEmpty()) {
+//            habit.setCurrentStreak(1);
+//            habit.setBestStreak(Math.max(habit.getBestStreak(), 1));
+//            return;
+//        }
+//
+//        LocalDate previousDate = previousCompletion.get().getCompletionDate();
+//
+//        boolean consecutive = habit.getHabitFrequency() == HabitFrequency.DAILY ? previousDate.equals(currentDate.minusDays(1)) : isPreviousIsoWeek(previousDate, currentDate);
+//
+//        if (consecutive) {
+//            habit.setCurrentStreak(habit.getCurrentStreak() + 1);
+//        } else {
+//            habit.setCurrentStreak(1);
+//        }
+//
+//        if (habit.getCurrentStreak() > habit.getBestStreak()) {
+//            habit.setBestStreak(habit.getCurrentStreak());
+//        }
+//    }
 
 
     private boolean isPreviousIsoWeek(LocalDate previousDate, LocalDate currentDate) {
@@ -115,5 +122,20 @@ public class CompleteHabitImpl implements ICompleteHabit {
         LocalDate previousCompletionWeekStart = previousDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
         return previousCompletionWeekStart.equals(previousWeekStart);
+    }
+
+
+    private boolean isConsecutive(Habit habit, Optional<HabitCompletionEntity> previousCompletion, LocalDate currentDate) {
+        if (previousCompletion.isEmpty()) {
+            return false;
+        }
+
+        LocalDate previousDate = previousCompletion.get().getCompletionDate();
+
+        if (habit.getHabitFrequency() == HabitFrequency.DAILY) {
+            return previousDate.equals(currentDate.minusDays(1));
+        }
+
+        return isPreviousIsoWeek(previousDate, currentDate);
     }
 }

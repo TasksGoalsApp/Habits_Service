@@ -1,6 +1,8 @@
 package com.example.Habits.business.Impl;
 
+import com.example.Habits.business.HabitConverter;
 import com.example.Habits.business.IActivateHabit;
+import com.example.Habits.domain.Habit;
 import com.example.Habits.exception.HabitNotFoundException;
 import com.example.Habits.repository.HabitEntity;
 import com.example.Habits.repository.HabitsRepository;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class ActivateHabitImpl implements IActivateHabit {
     private final HabitsRepository habitsRepository;
+    private final HabitConverter habitConverter;
 
     @Transactional
     @Override
@@ -19,6 +22,8 @@ public class ActivateHabitImpl implements IActivateHabit {
         HabitEntity entity = habitsRepository.findByIdAndUserId(habitId, userId)
                 .orElseThrow(()-> new HabitNotFoundException(habitId));
 
-        entity.setActive(true);
+        Habit habit = HabitConverter.toDomain(entity);
+        habit.activate();
+        habitConverter.applyToEntity(habit, entity);
     }
 }
