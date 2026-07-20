@@ -33,4 +33,9 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build sonar --info
+        run: |
+          cd Habits
+          chmod +x ./gradlew
+            ./gradlew clean build test jacocoTestReport
+          # Run SonarQube analysis, specifying the JaCoCo report path
+          ./gradlew sonar --info -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTest
