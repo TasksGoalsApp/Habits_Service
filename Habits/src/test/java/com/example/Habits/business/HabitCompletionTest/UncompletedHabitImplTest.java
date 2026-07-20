@@ -1,8 +1,7 @@
-package com.example.Habits.business;
+package com.example.Habits.business.HabitCompletionTest;
 
 import com.example.Habits.business.Impl.HabitCompletion.UncompleteHabitImpl;
 import com.example.Habits.business.streak.StreakCalculator;
-import com.example.Habits.business.streak.StreakResult;
 import com.example.Habits.domain.HabitCategory;
 import com.example.Habits.domain.HabitFrequency;
 import com.example.Habits.exception.HabitNotCompletedException;
@@ -27,7 +26,6 @@ import java.util.Optional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)

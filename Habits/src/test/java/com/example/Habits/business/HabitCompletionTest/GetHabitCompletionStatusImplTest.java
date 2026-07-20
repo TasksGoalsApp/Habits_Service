@@ -1,4 +1,4 @@
-package com.example.Habits.business;
+package com.example.Habits.business.HabitCompletionTest;
 
 import com.example.Habits.business.Impl.HabitCompletion.GetHabitCompletionStatusImpl;
 import com.example.Habits.domain.HabitCategory;

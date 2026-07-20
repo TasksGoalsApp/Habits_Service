@@ -1,4 +1,4 @@
-package com.example.Habits.business;
+package com.example.Habits.business.HabitCompletionTest;
 
 import com.example.Habits.business.Impl.HabitCompletion.CompleteHabitImpl;
 import com.example.Habits.domain.HabitCategory;
@@ -11,7 +11,6 @@ import com.example.Habits.repository.HabitCompletionEntity;
 import com.example.Habits.repository.HabitCompletionRepository;
 import com.example.Habits.repository.HabitEntity;
 import com.example.Habits.repository.HabitsRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -24,10 +23,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.hamcrest.Matchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.client.ExpectedCount.never;
 
 @ExtendWith(MockitoExtension.class)
 public class CompleteHabitImplTest {
