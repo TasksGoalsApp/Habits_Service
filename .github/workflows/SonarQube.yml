@@ -31,10 +31,14 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
       - name: Run tests and generate JaCoCo coverage
-        run: ./gradlew clean test jacocoTestReport
+        run: |
+         cd Habits
+         ./gradlew clean test jacocoTestReport
       
       - name: Verify JaCoCo coverage report
-        run: test -f build/reports/jacoco/test/jacocoTestReport.xml
+        run: | 
+         cd Habits
+         test -f build/reports/jacoco/test/jacocoTestReport.xml
             
       - name: Build and analyze
         env:
