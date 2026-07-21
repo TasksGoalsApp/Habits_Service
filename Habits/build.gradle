@@ -25,8 +25,8 @@ sonar {
 		property "sonar.organization", "tasksgoalsapp"
 		property 'sonar.projectName', 'Habits Service'
 
-		property 'sonar.coverage.jacoco.xmlReportPaths',
-				'build/reports/jacoco/test/jacocoTestReport.xml'
+		property "sonar.coverage.jacoco.xmlReportPaths",
+				"build/reports/jacoco/test/jacocoTestReport.xml"
 
 		property 'sonar.coverage.exclusions', [
 				'**/config/**',
