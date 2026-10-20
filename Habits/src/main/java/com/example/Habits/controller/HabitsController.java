@@ -14,11 +14,14 @@ import com.example.Habits.domain.Response.HabitCompletion.HabitCompletionStatusR
 import com.example.Habits.security.JwtUserIdExtractor;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @AllArgsConstructor
 @RestController
@@ -81,9 +84,11 @@ public class HabitsController {
     }
 
     @PostMapping("/{habitId}/completions")
-    public ResponseEntity<CompleteHabitResponse> completeHabit(@PathVariable Long habitId, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<CompleteHabitResponse> completeHabit(@PathVariable Long habitId,
+                                                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                                               @AuthenticationPrincipal Jwt jwt) {
         Long userId = jwtUserIdExtractor.extract(jwt);
-        CompleteHabitResponse response = completeHabit.completeHabit(habitId, userId);
+        CompleteHabitResponse response = completeHabit.completeHabit(habitId, userId, date);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -101,6 +106,15 @@ public class HabitsController {
         return ResponseEntity.noContent().build();
     }
 
+
+    @DeleteMapping("/{habitId}/completions/{date}")
+    public ResponseEntity<Void> uncompleteHabitOnDate(@PathVariable Long habitId,
+                                                      @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                                      @AuthenticationPrincipal Jwt jwt) {
+        Long userId = jwtUserIdExtractor.extract(jwt);
+        uncompleteHabit.uncompleteHabit(habitId, userId, date);
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/{habitId}/completions")
     public ResponseEntity<GetHabitCompletionResponse> getCompletions(@PathVariable Long habitId, @AuthenticationPrincipal Jwt jwt) {

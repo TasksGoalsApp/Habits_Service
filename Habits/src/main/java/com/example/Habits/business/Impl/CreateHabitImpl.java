@@ -1,6 +1,9 @@
 package com.example.Habits.business.Impl;
 
+import com.example.Habits.business.HabitText;
 import com.example.Habits.business.ICreateHabit;
+import com.example.Habits.domain.TimeOfDay;
+import com.example.Habits.domain.Weekdays;
 import com.example.Habits.domain.Request.CreateHabitRequest;
 import com.example.Habits.domain.Response.CreateHabitResponse;
 import com.example.Habits.repository.HabitEntity;
@@ -20,6 +23,10 @@ public class CreateHabitImpl implements ICreateHabit {
 
         return CreateHabitResponse.builder()
                 .id(savedHabit.getId())
+                .description(savedHabit.getDescription())
+                .weekdays(savedHabit.getWeekdays())
+                .timeOfDay(savedHabit.getTimeOfDay())
+                .target(savedHabit.getTarget())
                 .build();
     }
 
@@ -30,6 +37,10 @@ public class CreateHabitImpl implements ICreateHabit {
                 .name(request.getName().trim())
                 .habitFrequency(request.getHabitFrequency())
                 .habitCategory(request.getHabitCategory())
+                .description(HabitText.clean(request.getDescription()))
+                .weekdays(Weekdays.normalize(request.getWeekdays()))
+                .timeOfDay(request.getTimeOfDay() == null ? TimeOfDay.ANYTIME : request.getTimeOfDay())
+                .target(HabitText.clean(request.getTarget()))
                 .build();
 
         return repository.save(entity);

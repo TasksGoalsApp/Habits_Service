@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -11,4 +12,5 @@ import java.time.LocalDate;
 public class HabitCompletionResponse {
     private Long id;
     private LocalDate completionDate;
+    private LocalDateTime createdAt;
 }

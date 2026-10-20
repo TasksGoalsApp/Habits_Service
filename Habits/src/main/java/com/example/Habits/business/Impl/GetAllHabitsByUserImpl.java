@@ -4,6 +4,8 @@ import com.example.Habits.business.HabitConverter;
 import com.example.Habits.business.IGetAllHabitsByUser;
 import com.example.Habits.domain.Habit;
 import com.example.Habits.domain.HabitFrequency;
+import com.example.Habits.domain.TimeOfDay;
+import com.example.Habits.domain.Weekdays;
 import com.example.Habits.domain.Response.GetAllHabitsByUserResponse;
 import com.example.Habits.domain.Response.HabitResponse;
 import com.example.Habits.repository.HabitCompletionRepository;
@@ -35,6 +37,11 @@ public class GetAllHabitsByUserImpl implements IGetAllHabitsByUser {
                         .name(habit.getName())
                         .habitFrequency(habit.getHabitFrequency())
                         .habitCategory(habit.getHabitCategory())
+                        .description(habit.getDescription())
+                        .weekdays(Weekdays.normalize(habit.getWeekdays()))
+                        .timeOfDay(habit.getTimeOfDay() == null ? TimeOfDay.ANYTIME : habit.getTimeOfDay())
+                        .target(habit.getTarget())
+                        .createdAt(habit.getCreatedAt())
                         .currentStreak(habit.getCurrentStreak())
                         .bestStreak(habit.getBestStreak())
                         .active(habit.isActive())
