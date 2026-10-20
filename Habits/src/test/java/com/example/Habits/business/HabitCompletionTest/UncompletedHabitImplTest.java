@@ -294,4 +294,138 @@ public class UncompletedHabitImplTest {
 
 
 
+    @Test
+    void uncompleteHabit_shouldDeleteCompletionOnGivenDailyDate_andRecalculateStreaks() {
+        // Arrange
+        Long habitId = 1L;
+        Long userId = 10L;
+        LocalDate today = LocalDate.now();
+        LocalDate date = today.minusDays(3);
+
+        HabitEntity habit = createHabit(habitId, userId, HabitFrequency.DAILY, 3, 3);
+
+        HabitCompletionEntity completionOnDate = HabitCompletionEntity.builder()
+                        .id(100L)
+                        .habitId(habitId)
+                        .completionDate(date)
+                        .build();
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(habit));
+
+        when(completionRepository.findByHabitIdAndCompletionDate(habitId, date)).thenReturn(Optional.of(completionOnDate));
+
+        when(completionRepository.findAllByHabitIdOrderByCompletionDateAsc(habitId)).thenReturn(List.of(
+                createCompletion(habitId, today.minusDays(1)),
+                createCompletion(habitId, today)
+        ));
+
+        // Act
+        uncompleteHabit.uncompleteHabit(habitId, userId, date);
+
+        // Assert
+        assertThat(habit.getCurrentStreak()).isEqualTo(2);
+        assertThat(habit.getBestStreak()).isEqualTo(2);
+
+        verify(completionRepository).delete(completionOnDate);
+        verify(completionRepository).flush();
+    }
+
+    @Test
+    void uncompleteHabit_shouldDeleteWeeklyCompletionInTheWeekOfTheGivenDate() {
+        // Arrange
+        Long habitId = 1L;
+        Long userId = 10L;
+        LocalDate date = LocalDate.now().minusWeeks(2);
+        LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekEnd = weekStart.plusDays(6);
+
+        HabitEntity habit = createHabit(habitId, userId, HabitFrequency.WEEKLY, 1, 1);
+
+        HabitCompletionEntity completionInWeek = HabitCompletionEntity.builder()
+                        .id(100L)
+                        .habitId(habitId)
+                        .completionDate(weekStart.plusDays(1))
+                        .build();
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(habit));
+
+        when(completionRepository.findFirstByHabitIdAndCompletionDateBetween(habitId, weekStart, weekEnd)).thenReturn(Optional.of(completionInWeek));
+
+        when(completionRepository.findAllByHabitIdOrderByCompletionDateAsc(habitId)).thenReturn(List.of());
+
+        // Act
+        uncompleteHabit.uncompleteHabit(habitId, userId, date);
+
+        // Assert
+        verify(completionRepository).delete(completionInWeek);
+        assertThat(habit.getCurrentStreak()).isZero();
+        assertThat(habit.getBestStreak()).isZero();
+    }
+
+    @Test
+    void uncompleteHabit_shouldThrow_whenNothingWasCompletedOnGivenDate() {
+        // Arrange
+        Long habitId = 1L;
+        Long userId = 10L;
+        LocalDate date = LocalDate.now().minusDays(4);
+
+        HabitEntity habit = createHabit(habitId, userId, HabitFrequency.DAILY, 2, 5);
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(habit));
+
+        when(completionRepository.findByHabitIdAndCompletionDate(habitId, date)).thenReturn(Optional.empty());
+
+        // Act + Assert
+        assertThatThrownBy(() -> uncompleteHabit.uncompleteHabit(habitId, userId, date)).isInstanceOf(HabitNotCompletedException.class);
+
+        verify(completionRepository, never()).delete(any(HabitCompletionEntity.class));
+    }
+
+    @Test
+    void uncompleteHabit_shouldThrow_whenHabitIsNotFoundForUserOnGivenDate() {
+        Long habitId = 1L;
+        Long userId = 10L;
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> uncompleteHabit.uncompleteHabit(habitId, userId, LocalDate.now().minusDays(1)))
+                .isInstanceOf(HabitNotFoundException.class);
+
+        verifyNoInteractions(completionRepository);
+    }
+
+    @Test
+    void uncompleteHabit_shouldRecalculateStreaksUsingTheHabitWeekdays() {
+        // Arrange (dates are built relative to the most recent scheduled day)
+        Long habitId = 1L;
+        Long userId = 10L;
+        LocalDate today = LocalDate.now();
+        LocalDate lastScheduled = today;
+        while (lastScheduled.getDayOfWeek() != DayOfWeek.WEDNESDAY && lastScheduled.getDayOfWeek() != DayOfWeek.MONDAY) {
+            lastScheduled = lastScheduled.minusDays(1);
+        }
+        LocalDate previousScheduled = lastScheduled.getDayOfWeek() == DayOfWeek.WEDNESDAY
+                ? lastScheduled.minusDays(2)
+                : lastScheduled.minusDays(5);
+        LocalDate undone = lastScheduled.minusDays(7);
+
+        HabitEntity habit = createHabit(habitId, userId, HabitFrequency.DAILY, 3, 3);
+        habit.setWeekdays(java.util.EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY));
+
+        HabitCompletionEntity completionToUndo = createCompletion(habitId, undone);
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(habit));
+        when(completionRepository.findByHabitIdAndCompletionDate(habitId, undone)).thenReturn(Optional.of(completionToUndo));
+        when(completionRepository.findAllByHabitIdOrderByCompletionDateAsc(habitId)).thenReturn(List.of(
+                createCompletion(habitId, previousScheduled),
+                createCompletion(habitId, lastScheduled)
+        ));
+
+        // Act
+        uncompleteHabit.uncompleteHabit(habitId, userId, undone);
+
+        // Assert: consecutive scheduled days count as a streak of 2 although they are not consecutive calendar days
+        assertThat(habit.getBestStreak()).isEqualTo(2);
+    }
+
 }

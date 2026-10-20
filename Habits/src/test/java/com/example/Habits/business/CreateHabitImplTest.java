@@ -1,5 +1,8 @@
 package com.example.Habits.business;
 
+import java.util.Set;
+import java.time.DayOfWeek;
+import com.example.Habits.domain.TimeOfDay;
 import com.example.Habits.business.Impl.CreateHabitImpl;
 import com.example.Habits.domain.HabitCategory;
 import com.example.Habits.domain.HabitFrequency;
@@ -15,7 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -150,6 +153,96 @@ public class CreateHabitImplTest {
         assertThat(savedEntity.getCurrentStreak()).isZero();
         assertThat(savedEntity.getBestStreak()).isZero();
         assertThat(savedEntity.isActive()).isTrue();
+    }
+
+    @Test
+    void createHabit_shouldDefaultNewFields_whenNotProvided() {
+        CreateHabitRequest request = CreateHabitRequest.builder()
+                .name("Exercise")
+                .habitFrequency(HabitFrequency.DAILY)
+                .habitCategory(HabitCategory.FITNESS)
+                .build();
+
+        when(repository.save(ArgumentMatchers.<HabitEntity>any())).thenAnswer(invocation -> invocation.getArgument(0, HabitEntity.class));
+
+        CreateHabitResponse response = createHabitImpl.createHabit(request, 10L);
+
+        ArgumentCaptor<HabitEntity> captor = ArgumentCaptor.forClass(HabitEntity.class);
+        verify(repository).save(captor.capture());
+
+        HabitEntity savedEntity = captor.getValue();
+        assertThat(savedEntity.getDescription()).isNull();
+        assertThat(savedEntity.getTarget()).isNull();
+        assertThat(savedEntity.getTimeOfDay()).isEqualTo(TimeOfDay.ANYTIME);
+        assertThat(savedEntity.getWeekdays()).containsExactlyInAnyOrder(DayOfWeek.values());
+        assertThat(response.getTimeOfDay()).isEqualTo(TimeOfDay.ANYTIME);
+    }
+
+    @Test
+    void createHabit_shouldTreatEmptyWeekdaysAsEveryDay() {
+        CreateHabitRequest request = CreateHabitRequest.builder()
+                .name("Exercise")
+                .habitFrequency(HabitFrequency.DAILY)
+                .habitCategory(HabitCategory.FITNESS)
+                .weekdays(Set.of())
+                .build();
+
+        when(repository.save(ArgumentMatchers.<HabitEntity>any())).thenAnswer(invocation -> invocation.getArgument(0, HabitEntity.class));
+
+        createHabitImpl.createHabit(request, 10L);
+
+        ArgumentCaptor<HabitEntity> captor = ArgumentCaptor.forClass(HabitEntity.class);
+        verify(repository).save(captor.capture());
+
+        assertThat(captor.getValue().getWeekdays()).containsExactlyInAnyOrder(DayOfWeek.values());
+    }
+
+    @Test
+    void createHabit_shouldMapScheduleDescriptionAndTarget() {
+        CreateHabitRequest request = CreateHabitRequest.builder()
+                .name("Meditate")
+                .habitFrequency(HabitFrequency.DAILY)
+                .habitCategory(HabitCategory.MINDFULNESS)
+                .description("  Sit quietly before breakfast  ")
+                .weekdays(Set.of(DayOfWeek.MONDAY, DayOfWeek.THURSDAY))
+                .timeOfDay(TimeOfDay.MORNING)
+                .target("  10 min ")
+                .build();
+
+        when(repository.save(ArgumentMatchers.<HabitEntity>any())).thenAnswer(invocation -> invocation.getArgument(0, HabitEntity.class));
+
+        CreateHabitResponse response = createHabitImpl.createHabit(request, 10L);
+
+        ArgumentCaptor<HabitEntity> captor = ArgumentCaptor.forClass(HabitEntity.class);
+        verify(repository).save(captor.capture());
+
+        HabitEntity savedEntity = captor.getValue();
+        assertThat(savedEntity.getDescription()).isEqualTo("Sit quietly before breakfast");
+        assertThat(savedEntity.getWeekdays()).containsExactly(DayOfWeek.MONDAY, DayOfWeek.THURSDAY);
+        assertThat(savedEntity.getTimeOfDay()).isEqualTo(TimeOfDay.MORNING);
+        assertThat(savedEntity.getTarget()).isEqualTo("10 min");
+        assertThat(response.getTarget()).isEqualTo("10 min");
+    }
+
+    @Test
+    void createHabit_shouldStoreBlankDescriptionAndTargetAsNull() {
+        CreateHabitRequest request = CreateHabitRequest.builder()
+                .name("Read")
+                .habitFrequency(HabitFrequency.DAILY)
+                .habitCategory(HabitCategory.LEARNING)
+                .description("   ")
+                .target("")
+                .build();
+
+        when(repository.save(ArgumentMatchers.<HabitEntity>any())).thenAnswer(invocation -> invocation.getArgument(0, HabitEntity.class));
+
+        createHabitImpl.createHabit(request, 10L);
+
+        ArgumentCaptor<HabitEntity> captor = ArgumentCaptor.forClass(HabitEntity.class);
+        verify(repository).save(captor.capture());
+
+        assertThat(captor.getValue().getDescription()).isNull();
+        assertThat(captor.getValue().getTarget()).isNull();
     }
 }
 
