@@ -6,7 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @NoArgsConstructor
 @Builder
@@ -19,6 +21,10 @@ public class Habit {
     private String name;
     private HabitFrequency habitFrequency;
     private HabitCategory habitCategory;
+    private String description;
+    private Set<DayOfWeek> weekdays;
+    private TimeOfDay timeOfDay;
+    private String target;
     private int currentStreak=0;
     private int bestStreak=0;
     private boolean active= true;

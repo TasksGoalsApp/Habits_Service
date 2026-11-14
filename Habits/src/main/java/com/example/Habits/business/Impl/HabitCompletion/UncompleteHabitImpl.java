@@ -33,13 +33,19 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
     @Transactional
     @Override
     public void uncompleteHabit(Long habitId, Long userId) {
+        uncompleteHabit(habitId, userId, LocalDate.now());
+    }
+
+    @Transactional
+    @Override
+    public void uncompleteHabit(Long habitId, Long userId, LocalDate date) {
 
         HabitEntity habit = habitsRepository.findByIdAndUserId(habitId, userId)
                 .orElseThrow(() -> new HabitNotFoundException(habitId));
 
-        LocalDate today = LocalDate.now();
+        LocalDate targetDate = date == null ? LocalDate.now() : date;
 
-        HabitCompletionEntity completion = findCurrentCompletion(habit, today)
+        HabitCompletionEntity completion = findCurrentCompletion(habit, targetDate)
                         .orElseThrow(() -> new HabitNotCompletedException(habitId));
 
         habitCompletionRepository.delete(completion);
@@ -69,7 +75,7 @@ public class UncompleteHabitImpl implements IUncompleteHabit {
                 .map(HabitCompletionEntity::getCompletionDate)
                 .toList();
 
-        StreakResult result = streakCalculator.calculate(habit.getHabitFrequency(), completionDates,LocalDate.now());
+        StreakResult result = streakCalculator.calculate(habit.getHabitFrequency(), habit.getWeekdays(), completionDates, LocalDate.now());
 
         habit.applyRecalculatedStreaks(result.currentStreak(), result.bestStreak());
 

@@ -1,9 +1,13 @@
 package com.example.Habits.business.streak;
 
+import com.example.Habits.domain.HabitFrequency;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public class StreakCalculatorTest {
     private final StreakCalculator streakCalculator = new StreakCalculator();
@@ -226,5 +230,135 @@ public class StreakCalculatorTest {
 
         assertThat(result.currentStreak()).isEqualTo(2);
         assertThat(result.bestStreak()).isEqualTo(2);
+    }
+
+    // ---- weekday-aware daily streaks (2026-10-19 is a Monday) ----
+
+    private static final Set<DayOfWeek> MON_WED_FRI = EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY);
+
+    @Test
+    void calculateDaily_withWeekdays_shouldCountConsecutiveScheduledDays() {
+        LocalDate today = LocalDate.of(2026, 10, 19); // Monday
+
+        List<LocalDate> completions = List.of(
+                LocalDate.of(2026, 10, 12), // Mon
+                LocalDate.of(2026, 10, 14), // Wed
+                LocalDate.of(2026, 10, 16), // Fri
+                today
+        );
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, completions, today);
+
+        assertThat(result.currentStreak()).isEqualTo(4);
+        assertThat(result.bestStreak()).isEqualTo(4);
+    }
+
+    @Test
+    void calculateDaily_withWeekdays_shouldBreakStreak_whenAScheduledDayIsMissed() {
+        LocalDate today = LocalDate.of(2026, 10, 19);
+
+        List<LocalDate> completions = List.of(
+                LocalDate.of(2026, 10, 12), // Mon
+                LocalDate.of(2026, 10, 16), // Fri, Wed 14 was missed
+                today
+        );
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, completions, today);
+
+        assertThat(result.currentStreak()).isEqualTo(2);
+        assertThat(result.bestStreak()).isEqualTo(2);
+    }
+
+    @Test
+    void calculateDaily_withWeekdays_shouldKeepCurrentStreakAlive_whenTodayIsScheduledButNotDoneYet() {
+        LocalDate today = LocalDate.of(2026, 10, 19); // Monday, not done yet
+
+        List<LocalDate> completions = List.of(
+                LocalDate.of(2026, 10, 14), // Wed
+                LocalDate.of(2026, 10, 16)  // Fri
+        );
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, completions, today);
+
+        assertThat(result.currentStreak()).isEqualTo(2);
+        assertThat(result.bestStreak()).isEqualTo(2);
+    }
+
+    @Test
+    void calculateDaily_withWeekdays_shouldKeepCurrentStreakAlive_whenTodayIsNotScheduled() {
+        LocalDate today = LocalDate.of(2026, 10, 17); // Saturday
+
+        List<LocalDate> completions = List.of(
+                LocalDate.of(2026, 10, 14), // Wed
+                LocalDate.of(2026, 10, 16)  // Fri
+        );
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, completions, today);
+
+        assertThat(result.currentStreak()).isEqualTo(2);
+        assertThat(result.bestStreak()).isEqualTo(2);
+    }
+
+    @Test
+    void calculateDaily_withWeekdays_shouldResetCurrentStreak_whenLastScheduledDayWasMissed() {
+        LocalDate today = LocalDate.of(2026, 10, 19); // Monday, Fri 16 was missed
+
+        List<LocalDate> completions = List.of(
+                LocalDate.of(2026, 10, 12), // Mon
+                LocalDate.of(2026, 10, 14)  // Wed
+        );
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, completions, today);
+
+        assertThat(result.currentStreak()).isZero();
+        assertThat(result.bestStreak()).isEqualTo(2);
+    }
+
+    @Test
+    void calculateDaily_withWeekdays_shouldIgnoreCompletionsOnUnscheduledDays() {
+        LocalDate today = LocalDate.of(2026, 10, 14); // Wednesday
+
+        List<LocalDate> completions = List.of(
+                LocalDate.of(2026, 10, 12), // Mon
+                LocalDate.of(2026, 10, 13), // Tue, not scheduled
+                today
+        );
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, completions, today);
+
+        assertThat(result.currentStreak()).isEqualTo(2);
+        assertThat(result.bestStreak()).isEqualTo(2);
+    }
+
+    @Test
+    void calculateDaily_withWeekdays_shouldReturnZero_whenOnlyUnscheduledDaysWereCompleted() {
+        LocalDate today = LocalDate.of(2026, 10, 14);
+
+        StreakResult result = streakCalculator.calculateDaily(MON_WED_FRI, List.of(LocalDate.of(2026, 10, 13)), today);
+
+        assertThat(result.currentStreak()).isZero();
+        assertThat(result.bestStreak()).isZero();
+    }
+
+    @Test
+    void calculateDaily_withNullOrEmptyWeekdays_shouldBehaveLikeEveryDay() {
+        LocalDate today = LocalDate.of(2026, 10, 19);
+        List<LocalDate> completions = List.of(today.minusDays(2), today.minusDays(1), today);
+
+        assertThat(streakCalculator.calculateDaily(null, completions, today))
+                .isEqualTo(streakCalculator.calculateDaily(completions, today));
+        assertThat(streakCalculator.calculateDaily(Set.of(), completions, today))
+                .isEqualTo(streakCalculator.calculateDaily(completions, today));
+    }
+
+    @Test
+    void calculate_shouldIgnoreWeekdaysForWeeklyHabits() {
+        LocalDate today = LocalDate.of(2026, 10, 19);
+        List<LocalDate> completions = List.of(LocalDate.of(2026, 10, 7), LocalDate.of(2026, 10, 14)); // Wed, Wed
+
+        StreakResult result = streakCalculator.calculate(HabitFrequency.WEEKLY, EnumSet.of(DayOfWeek.MONDAY), completions, today);
+
+        assertThat(result).isEqualTo(streakCalculator.calculateWeekly(completions, today));
+        assertThat(result.currentStreak()).isEqualTo(2);
     }
 }

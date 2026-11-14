@@ -1,4 +1,5 @@
 package com.example.Habits.business;
+import java.time.LocalDateTime;
 import com.example.Habits.business.Impl.HabitCompletion.GetHabitCompletionsImpl;
 import com.example.Habits.domain.HabitCategory;
 import com.example.Habits.domain.HabitFrequency;
@@ -190,5 +191,22 @@ public class GetHabitCompletionImplTest {
                 .habitId(habitId)
                 .completionDate(completionDate)
                 .build();
+    }
+
+    @Test
+    void getCompletions_shouldIncludeCreatedAt() {
+        Long habitId = 1L;
+        Long userId = 10L;
+        LocalDateTime createdAt = LocalDateTime.of(2026, 7, 20, 8, 15, 30);
+
+        HabitCompletionEntity completion = createCompletion(101L, habitId, LocalDate.of(2026, 7, 20));
+        completion.setCreatedAt(createdAt);
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(createHabit(habitId, userId)));
+        when(habitCompletionRepository.findAllByHabitIdOrderByCompletionDateDesc(habitId)).thenReturn(List.of(completion));
+
+        GetHabitCompletionResponse response = getHabitCompletionsImpl.getCompletions(habitId, userId);
+
+        assertThat(response.getCompletions().get(0).getCreatedAt()).isEqualTo(createdAt);
     }
 }
