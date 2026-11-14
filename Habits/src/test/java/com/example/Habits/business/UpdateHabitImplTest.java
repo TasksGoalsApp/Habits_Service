@@ -1,5 +1,9 @@
 package com.example.Habits.business;
 
+import java.util.Set;
+import java.util.EnumSet;
+import java.time.DayOfWeek;
+import com.example.Habits.domain.TimeOfDay;
 import com.example.Habits.business.Impl.UpdateHabitImpl;
 import com.example.Habits.domain.HabitCategory;
 import com.example.Habits.domain.HabitFrequency;
@@ -16,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
@@ -186,6 +190,65 @@ public class UpdateHabitImplTest {
                 .bestStreak(0)
                 .active(true)
                 .build();
+    }
+
+    @Test
+    void updateHabit_shouldUpdateScheduleDescriptionAndTarget() {
+        Long habitId = 1L;
+        Long userId = 10L;
+
+        HabitEntity existingHabit = createHabit(habitId, userId, "Read", HabitFrequency.DAILY, HabitCategory.LEARNING);
+
+        UpdateHabitRequest request = UpdateHabitRequest.builder()
+                .name("Read")
+                .habitFrequency(HabitFrequency.DAILY)
+                .habitCategory(HabitCategory.LEARNING)
+                .description(" Ten pages ")
+                .weekdays(Set.of(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
+                .timeOfDay(TimeOfDay.EVENING)
+                .target("10 pages")
+                .build();
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(existingHabit));
+
+        UpdateHabitResponse response = updateHabitImpl.updateHabit(request, habitId, userId);
+
+        assertThat(existingHabit.getDescription()).isEqualTo("Ten pages");
+        assertThat(existingHabit.getWeekdays()).containsExactly(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY);
+        assertThat(existingHabit.getTimeOfDay()).isEqualTo(TimeOfDay.EVENING);
+        assertThat(existingHabit.getTarget()).isEqualTo("10 pages");
+
+        assertThat(response.getDescription()).isEqualTo("Ten pages");
+        assertThat(response.getWeekdays()).containsExactly(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY);
+        assertThat(response.getTimeOfDay()).isEqualTo(TimeOfDay.EVENING);
+        assertThat(response.getTarget()).isEqualTo("10 pages");
+    }
+
+    @Test
+    void updateHabit_shouldResetNewFieldsToDefaults_whenOmitted() {
+        Long habitId = 1L;
+        Long userId = 10L;
+
+        HabitEntity existingHabit = createHabit(habitId, userId, "Read", HabitFrequency.DAILY, HabitCategory.LEARNING);
+        existingHabit.setDescription("old");
+        existingHabit.setTarget("old");
+        existingHabit.setTimeOfDay(TimeOfDay.MORNING);
+        existingHabit.setWeekdays(EnumSet.of(DayOfWeek.MONDAY));
+
+        UpdateHabitRequest request = UpdateHabitRequest.builder()
+                .name("Read")
+                .habitFrequency(HabitFrequency.DAILY)
+                .habitCategory(HabitCategory.LEARNING)
+                .build();
+
+        when(habitsRepository.findByIdAndUserId(habitId, userId)).thenReturn(Optional.of(existingHabit));
+
+        updateHabitImpl.updateHabit(request, habitId, userId);
+
+        assertThat(existingHabit.getDescription()).isNull();
+        assertThat(existingHabit.getTarget()).isNull();
+        assertThat(existingHabit.getTimeOfDay()).isEqualTo(TimeOfDay.ANYTIME);
+        assertThat(existingHabit.getWeekdays()).containsExactlyInAnyOrder(DayOfWeek.values());
     }
 }
 

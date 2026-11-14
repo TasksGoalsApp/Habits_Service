@@ -292,4 +292,35 @@ public class GetAllHabitsByUserImplTest {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
+
+    @Test
+    void getAllHabits_shouldExposeScheduleFields_andDefaultLegacyRows() {
+        Long userId = 10L;
+
+        HabitEntity scheduled = createHabit(1L, userId, "Meditate", HabitFrequency.DAILY, HabitCategory.MINDFULNESS, 0, 0, true);
+        scheduled.setDescription("Quiet sitting");
+        scheduled.setWeekdays(java.util.EnumSet.of(DayOfWeek.TUESDAY, DayOfWeek.FRIDAY));
+        scheduled.setTimeOfDay(com.example.Habits.domain.TimeOfDay.MORNING);
+        scheduled.setTarget("10 min");
+
+        // a row created before the schedule columns existed
+        HabitEntity legacy = createHabit(2L, userId, "Read", HabitFrequency.DAILY, HabitCategory.LEARNING, 0, 0, true);
+        legacy.setWeekdays(null);
+        legacy.setTimeOfDay(null);
+
+        when(habitsRepository.findAllByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(scheduled, legacy));
+
+        GetAllHabitsByUserResponse response = getAllHabitsByUserImpl.getAllHabits(userId);
+
+        HabitResponse first = response.getHabits().get(0);
+        assertThat(first.getDescription()).isEqualTo("Quiet sitting");
+        assertThat(first.getWeekdays()).containsExactly(DayOfWeek.TUESDAY, DayOfWeek.FRIDAY);
+        assertThat(first.getTimeOfDay()).isEqualTo(com.example.Habits.domain.TimeOfDay.MORNING);
+        assertThat(first.getTarget()).isEqualTo("10 min");
+
+        HabitResponse second = response.getHabits().get(1);
+        assertThat(second.getDescription()).isNull();
+        assertThat(second.getWeekdays()).containsExactlyInAnyOrder(DayOfWeek.values());
+        assertThat(second.getTimeOfDay()).isEqualTo(com.example.Habits.domain.TimeOfDay.ANYTIME);
+    }
 }

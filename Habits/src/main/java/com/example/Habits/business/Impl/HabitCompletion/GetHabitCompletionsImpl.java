@@ -33,6 +33,7 @@ public class GetHabitCompletionsImpl implements IGetHabitCompletions {
                                         .completionDate(
                                                 entity.getCompletionDate()
                                         )
+                                        .createdAt(entity.getCreatedAt())
                                         .build()
                         )
                         .toList();
